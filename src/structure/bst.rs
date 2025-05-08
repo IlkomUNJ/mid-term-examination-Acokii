@@ -1,3 +1,4 @@
+use core::borrow;
 use std::cell::{Ref, RefCell};
 use std::rc::{Rc, Weak};
 
@@ -60,6 +61,15 @@ impl BstNode {
     pub fn add_right_child(&mut self, current_node_link: &BstNodeLink, value: i32) {
         let new_node = BstNode::new_with_parent(current_node_link, value);
         self.right = Some(new_node);
+    }
+
+    fn add_node(&self, target_node: &BstNodeLink, value: i32) -> bool {
+        if let Some(target) = self.tree_search(&target_node.borrow().key.unwrap()){
+            BstNode::tree_insert(&Some(target_node.clone()), &value);
+            true
+        }else {
+            false
+        }
     }
 
     /**change node u, with node v via parent swap
@@ -210,6 +220,100 @@ impl BstNode {
             }
 
             None
+        }
+    }
+
+    /**
+     * get the node before target node in preorder tree
+     */
+    fn tree_predecessor(node: &BstNodeLink) -> Option<BstNodeLink> {
+        if let Some(node_left) = node.borrow().left.clone() {
+            return Some(node_left.borrow().maximum());
+        }
+        if let Some(node_parent) = node.borrow().parent.clone().unwrap().upgrade() {
+            if BstNode::is_node_match_option(node_parent.borrow().right.clone(), Some(node.clone())) {
+                return Some(node_parent.clone());
+            }
+            BstNode::tree_predecessor(&node_parent.clone());
+        }
+        Some(node.clone())
+    }
+
+    /**
+     * get the mid value of the tree
+     */
+    fn median(&self) -> BstNodeLink {
+        let minimum = self.minimum();
+        let maximum = self.maximum();
+        let mut minimum_succ = BstNode::tree_successor(&minimum);
+        let mut maximum_pred = BstNode::tree_predecessor(&maximum);
+        let mut count = 1;
+        let mut result: Option<BstNodeLink>;
+        while !BstNode::is_node_match_option(minimum_succ.clone(), maximum_pred.clone()) && !BstNode::is_node_match_option(minimum_succ.clone(), Some(maximum.clone())) {
+            let bind = BstNode::tree_successor(&minimum_succ.unwrap());
+            let temp = BstNode::tree_predecessor(&maximum_pred.unwrap());
+            minimum_succ = bind;
+            maximum_pred = temp;
+            count += 1;
+        }
+        result = minimum_succ;
+        if BstNode::is_node_match_option(result.clone(), Some(maximum)) {
+            for i in 1..count/2 {
+                let temp2 = BstNode::tree_predecessor(&result.clone().unwrap());
+                result = temp2;
+            }
+        }
+        return result.unwrap().borrow().get_bst_nodelink_copy();
+    }
+
+    fn tree_rebalance(node: &BstNodeLink) -> BstNodeLink {
+        // wallahi i'm finished
+        let parent = BstNode::get_strong_parent(node);
+        // cek kiri ada ga buat masuk test case 1
+        if node.borrow().left.is_none(){
+            // cek kanan ada atau nggak, kalo ada dia lanjut buat cek anaknya ada atau nggak
+            if let Some(right) = node.borrow().right.clone(){
+                // anaknya anak kanan dari node ada atau nggak
+                if let Some(child_right) = right.borrow().right.clone(){
+                    // cek anak kirinya kosong pa kagak kalo iya lanjut
+                    if right.borrow().left.is_none() {
+                        // ngecek dari kanan apa kiri
+                        if BstNode::is_node_match(&parent.borrow().right.clone().unwrap(), node) {
+                            parent.borrow_mut().right = Some(right.borrow().get_bst_nodelink_copy());
+                        }else {
+                            parent.borrow_mut().left = Some(right.borrow().get_bst_nodelink_copy());
+                        }
+                    } else {
+                        
+                    }
+                }
+            }
+        }
+        node.clone()
+    }
+
+    // fungsi tambahan saya sendiri
+    fn rotate_left(node: &BstNodeLink){
+        let parent = BstNode::get_strong_parent(node);
+        if let Some(right_child) = node.borrow().right.clone(){
+            if BstNode::is_node_match(&parent.borrow().right.clone().unwrap(), node){
+                parent.borrow_mut().right = Some(right_child.clone());
+            }else {
+                parent.borrow_mut().left = Some(right_child.clone());
+            }
+            right_child.borrow_mut().left = Some(node.clone());
+        }
+    }
+
+    fn rotate_right(node: &BstNodeLink){
+        let parent = BstNode::get_strong_parent(node);
+        if let Some(left_child) = node.borrow().left.clone(){
+            if BstNode::is_node_match(&parent.borrow().right.clone().unwrap(), node){
+                parent.borrow_mut().right = Some(left_child.clone());
+            }else {
+                parent.borrow_mut().left = Some(left_child.clone());
+            }
+            left_child.borrow_mut().right = Some(node.clone());
         }
     }
 

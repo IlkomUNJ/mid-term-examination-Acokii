@@ -124,6 +124,10 @@ fn test_binary_search_tree(){
         //test removal
         let rootalter = BstNode::tree_delete(&rootlink2.as_ref().unwrap());
         generate_dotfile_bst(&rootalter, "bst_delete_root.dot");
+
+        // tree_delete bug removing second root
+        // let rootalter2 = BstNode::tree_delete(&rootalter);
+        // generate_dotfile_bst(&rootalter2, "bst_delete_root_2.dot");
     }
 }
 
